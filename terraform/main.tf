@@ -388,11 +388,14 @@ resource "aws_lb" "main" {
 }
 
 resource "aws_lb_target_group" "app" {
-  name        = "${var.project_name}-tg"
-  port        = var.app_port
-  protocol    = "HTTP"
-  vpc_id      = aws_vpc.main.id
-  target_type = "instance"
+  name                 = "${var.project_name}-tg"
+  port                 = var.app_port
+  protocol             = "HTTP"
+  vpc_id               = aws_vpc.main.id
+  target_type          = "instance"
+  # Reduced from the 300s default so targets deregister quickly during destroy,
+  # allowing the ECS service to reach INACTIVE before the 20m Terraform timeout.
+  deregistration_delay = 30
 
   health_check {
     path                = "/health"
@@ -505,9 +508,16 @@ resource "aws_ecs_service" "app" {
     container_port   = var.app_port
   }
 
+  # aws_ecs_cluster_capacity_providers is added here so that on destroy
+  # Terraform tears down the ECS service FIRST, then disassociates the
+  # capacity provider from the cluster, and only then destroys the ASG.
+  # Without this ordering the service stays DRAINING forever because the
+  # capacity provider / ASG are being deleted in parallel, leaving ECS
+  # with no infrastructure to complete the drain on.
   depends_on = [
     aws_lb_listener.http,
     aws_iam_role_policy_attachment.ecs_task_execution_policy,
+    aws_ecs_cluster_capacity_providers.main,
   ]
 
   tags = {
