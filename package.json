@@ -1,0 +1,15 @@
+{
+  "name": "nodeecsapp7",
+  "version": "1.0.0",
+  "private": true,
+  "description": "nodeecsapp7 \u2014 Node.js/Express API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "dotenv": "^16.4.7"
+  }
+}
